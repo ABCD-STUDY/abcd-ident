@@ -15,7 +15,8 @@ class QRScannerController: UIViewController {
     @IBOutlet var topbar: UIView!
     
     var captureSession = AVCaptureSession()
-    
+    var setup_code = "" // load and save the setup code if a specific QR code has been detected, change display to "Setup done"""
+
     var videoPreviewLayer: AVCaptureVideoPreviewLayer?
     var qrCodeFrameView: UIView?
 
@@ -142,8 +143,21 @@ extension QRScannerController: AVCaptureMetadataOutputObjectsDelegate {
             qrCodeFrameView?.frame = barCodeObject!.bounds
             
             if metadataObj.stringValue != nil {
-                launchApp(decodedURL: metadataObj.stringValue!)
-                messageLabel.text = metadataObj.stringValue
+                // here we need to add the abcd-report url and the code for the site/RA that runs the scan
+                // the code on the label should not be clear text pGUID but instead a hashed version that only
+                // the server can decode (hash as well and compare with all stored pGUIDs for this site)
+                let code_value: String = metadataObj.stringValue!
+                // we need to store the setup code - if the current scanned QR code has one
+                // produce an error value if setupCode does not have a value
+                // do we have a setup code or a non-setup code?
+                if (code_value.hasPrefix("http")) { // assume a server code
+                    setup_code = code_value
+                    messageLabel.text = "Setup successful"
+                } else {
+                    let url: String = setup_code + "&c=" + code_value
+                    launchApp(decodedURL: url)
+                    messageLabel.text = url
+                }
             }
         }
     }
