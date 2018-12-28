@@ -36,6 +36,9 @@ class QRScannerController: UIViewController {
    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        setup_code = UserDefaults.standard.string(forKey: "SetupCode") ?? ""
+        messageLabel.text = "Setup information availabel"
 
         // Get the back-facing camera for capturing videos
         let deviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: AVMediaType.video, position: .back)
@@ -103,7 +106,7 @@ class QRScannerController: UIViewController {
         if presentedViewController != nil {
             return
         }
-        
+
         let alertPrompt = UIAlertController(title: "Open App", message: "You're going to id \(decodedURL)", preferredStyle: .actionSheet)
         let confirmAction = UIAlertAction(title: "Confirm", style: UIAlertActionStyle.default, handler: { (action) -> Void in
             
@@ -130,7 +133,11 @@ extension QRScannerController: AVCaptureMetadataOutputObjectsDelegate {
         // Check if the metadataObjects array is not nil and it contains at least one object.
         if metadataObjects.count == 0 {
             qrCodeFrameView?.frame = CGRect.zero
-            messageLabel.text = "No QR code is detected"
+            var sd = ""
+            if (setup_code != "") {
+                sd = "setp done "
+            }
+            messageLabel.text = sd + "No QR code is detected"
             return
         }
         
@@ -146,12 +153,13 @@ extension QRScannerController: AVCaptureMetadataOutputObjectsDelegate {
                 // here we need to add the abcd-report url and the code for the site/RA that runs the scan
                 // the code on the label should not be clear text pGUID but instead a hashed version that only
                 // the server can decode (hash as well and compare with all stored pGUIDs for this site)
-                let code_value: String = metadataObj.stringValue!
+                let code_value: String = metadataObj.stringValue ?? ""
                 // we need to store the setup code - if the current scanned QR code has one
                 // produce an error value if setupCode does not have a value
                 // do we have a setup code or a non-setup code?
                 if (code_value.hasPrefix("http")) { // assume a server code
                     setup_code = code_value
+                    UserDefaults.standard.set(setup_code, forKey: "SetupCode")
                     messageLabel.text = "Setup successful"
                 } else {
                     let url: String = setup_code + "&c=" + code_value
